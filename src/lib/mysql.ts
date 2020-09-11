@@ -414,6 +414,7 @@ export namespace dbu {
 		}
 
 	}
+	
 	/** 表格修改器 */
 	class TableUpdater {
 		constructor(private dbName: string, private tableName: string, private exec: (sql: string) => any) { }
@@ -682,8 +683,15 @@ export namespace dbu {
 		 * 插入多条数据
 		 * @param values 数据值
 		 */
-		public async insertMany(table: string, values: Array<{ [i: string]: any }>): Promise<void> {
-			await Promise.all(values.map(val => this.insert(table, val)))
+		public async insertMany(table: string, values: Array<{ [i: string]: any }>): Promise<Array<number | string>> {
+			const result = []
+			for (let i = 0; i < values.length; i++) {
+				const resi = await this.insert(table, values[i])
+				result.push(resi.insertId)
+				process.stdout.write(`              \x1b[0Gcomplate: ${parseInt((i + 1) * 100 / values.length as any)}% (${i + 1}/${values.length})`)
+			}
+			process.stdout.write(`\x1b[0G                      \x1b[0G`)
+			return result
 		}
 
 		/**
