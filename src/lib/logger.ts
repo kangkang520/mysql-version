@@ -11,7 +11,7 @@ export namespace logger {
 		return {
 			info: isSupported ? 'ℹ' : 'i',
 			success: isSupported ? '✔' : '√',
-			warning: isSupported ? '⚠' : '!!',
+			warning: isSupported ? '⚠' : '!',
 			error: isSupported ? '✖' : '×',
 		}
 	})()
