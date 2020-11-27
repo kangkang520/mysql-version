@@ -63,7 +63,9 @@ export namespace dbu {
 		/** 类型 */
 		type: 'index' | 'unique' | 'fulltext',
 		/** 列名称 */
-		column: string
+		columns: Array<string>
+		/** 是否使用ngram分词器，在全文索引时可以设置 */
+		ngram?: boolean
 	}
 
 	/** 外键级联选项 */
@@ -72,6 +74,34 @@ export namespace dbu {
 		update: 'restrict' | 'cascade' | 'set null' | 'no action' | 'set default'
 		/** 删除选项 */
 		delete: 'restrict' | 'cascade' | 'set null' | 'no action' | 'set default'
+	}
+
+	/**
+	 * 生成键名称
+	 * @param column 列信息
+	 */
+	function keyName(column: string | Array<string>) {
+		if (typeof column == 'string') return column
+		return column.join('_')
+	}
+
+	/**
+	 * 将索引信息转换成SQL字符串
+	 * @param info 索引信息
+	 */
+	function strIndex(info: IIndexInfo) {
+		//索引名称
+		const name = mysql.escapeId(keyName(info.columns))
+		//索引类型
+		const type = (info.type == 'index') ? 'index' : `${info.type} index`
+		//索引列
+		const cols = info.columns.map(c => mysql.escapeId(c)).join(',')
+		//生成字符串
+		var str = `${type} ${name}(${cols})`
+		//ngram
+		if (info.ngram && info.type == 'fulltext') str += ' with parser ngram'
+		//完成
+		return str
 	}
 
 	/** 表格创建器 */
@@ -111,8 +141,9 @@ export namespace dbu {
 		 * @param column 列名称
 		 * @param type 所有类型
 		 */
-		public index(column: string, type?: IIndexInfo['type']) {
-			this.indexes.push({ column, type: type || 'index' })
+		public index(column: string | Array<string>, type?: IIndexInfo['type'], option?: Pick<IIndexInfo, 'ngram'>) {
+			const c = (column instanceof Array) ? column : [column]
+			this.indexes.push({ columns: c, type: type || 'index', ...option })
 			return this
 		}
 
@@ -260,16 +291,11 @@ export namespace dbu {
 				col.default ? `default ${col.default}` : '',
 				col.comment ? `comment ${mysql.escape(col.comment)}` : ''
 			].filter(s => !!s).join(' ')
-			const mkindex = (index: IIndexInfo) => [
-				index.type == 'index' ? `index ${mysql.escapeId(index.column)}(${mysql.escapeId(index.column)})` : '',
-				index.type == 'unique' ? `unique index ${mysql.escapeId(index.column)}(${mysql.escapeId(index.column)})` : '',
-				index.type == 'fulltext' ? `fulltext index ${mysql.escapeId(index.column)}(${mysql.escapeId(index.column)})` : '',
-			].filter(s => !!s)[0]
 
 			const sql = `create table ${mysql.escapeId(this.name)} (${[
 				...this.columns.map(col => mkcol(col)),
 				this.primaries ? `primary key (${this.primaries.map(p => mysql.escapeId(p)).join(',')})` : '',
-				...this.indexes.map(i => mkindex(i)),
+				...this.indexes.map(i => strIndex(i)),
 			].join(', ')})${this.comment ? ` comment=${mysql.escape(this.comment)}` : ''}`
 			logger.info('update', `create table [${this.name}]`)
 			await this.exec(sql)
@@ -414,7 +440,7 @@ export namespace dbu {
 		}
 
 	}
-	
+
 	/** 表格修改器 */
 	class TableUpdater {
 		constructor(private dbName: string, private tableName: string, private exec: (sql: string) => any) { }
@@ -439,19 +465,30 @@ export namespace dbu {
 		//获取主键列表
 		private async primaryKeys(): Promise<Array<string>> {
 			const keys = await this.keys()
-			return keys.filter(key => key.name == 'PRIMARY').map(key => key.column)
+			for (let i = 0; i < keys.length; i++) {
+				if (keys[i].name == 'PRIMARY') return keys[i].columns
+			}
+			return []
 		}
 
 		//获取索引列表
 		private async keys() {
 			const sql = `select * from information_schema.STATISTICS where TABLE_SCHEMA=${mysql.escape(this.dbName)} and TABLE_NAME=${mysql.escape(this.tableName)}`
 			const keys: Array<any> = await this.exec(sql)
-			return keys.map(key => ({
-				/** 索引名称 */
-				name: key.INDEX_NAME as string,
-				/** 列名称 */
-				column: key.COLUMN_NAME as string,
-			}))
+			const buffer: Array<{ name: string, columns: Array<string> }> = []
+			keys.forEach(key => {
+				for (let i = 0; i < buffer.length; i++) {
+					if (buffer[i].name == key.INDEX_NAME) {
+						buffer[i].columns.push(key.COLUMN_NAME)
+						return
+					}
+				}
+				buffer.push({
+					name: key.INDEX_NAME,
+					columns: [key.COLUMN_NAME]
+				})
+			})
+			return buffer
 		}
 
 		/**
@@ -530,26 +567,29 @@ export namespace dbu {
 
 		/**
 		 * 删除索引
-		 * @param column 索引列名称
+		 * @param columns 索引列名称
 		 */
-		public async dropKey(column: string) {
-			logger.info('update', `alter table [${this.tableName}] drop index of [${column}]`)
-			await this.exec(`alter table ${mysql.escapeId(this.tableName)} drop index ${mysql.escapeId(column)}`)
+		public async dropKey(columns: Array<string> | string) {
+			logger.info('update', `alter table [${this.tableName}] drop index of [${columns}]`)
+			await this.exec(`alter table ${mysql.escapeId(this.tableName)} drop index ${keyName(columns)}`)
 		}
 
 		/**
 		 * 添加索引
-		 * @param column 列名称
+		 * @param columns 列名称
 		 * @param type 索引类型
+		 * @param option 索引选项
 		 */
-		public async addIndex(column: string, type: IIndexInfo['type'] = 'index') {
+		public async addIndex(columns: Array<string> | string, type: IIndexInfo['type'] = 'index', option?: Pick<IIndexInfo, 'ngram'>) {
+			columns = (columns instanceof Array) ? columns : [columns]
 			//检测索引是否存在，如果存在则删除
+			const kname = keyName(columns)
 			const keys = await this.keys()
-			const [key] = keys.filter(key => key.column == column && key.name != 'PRIMARY')
-			if (key) await this.dropKey(key.name)
-			logger.info('update', `alter table [${this.tableName}] add index of [${column}]`)
-			const name = (type == 'index') ? 'index' : `${type} index`
-			await this.exec(`alter table ${mysql.escapeId(this.tableName)} add ${name} ${mysql.escapeId(column)}(${mysql.escapeId(column)})`)
+			if (keys.some(key => key.name == kname)) await this.dropKey(columns)
+			//添加索引
+			logger.info('update', `alter table [${this.tableName}] add index of [${columns}]`)
+			const indexStr = strIndex({ columns, type, ...option })
+			await this.exec(`alter table ${mysql.escapeId(this.tableName)} add ${indexStr}})`)
 		}
 
 		/**
