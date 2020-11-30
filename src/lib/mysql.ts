@@ -589,7 +589,7 @@ export namespace dbu {
 			//添加索引
 			logger.info('update', `alter table [${this.tableName}] add index of [${columns}]`)
 			const indexStr = strIndex({ columns, type, ...option })
-			await this.exec(`alter table ${mysql.escapeId(this.tableName)} add ${indexStr}})`)
+			await this.exec(`alter table ${mysql.escapeId(this.tableName)} add ${indexStr}`)
 		}
 
 		/**
