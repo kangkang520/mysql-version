@@ -25,7 +25,7 @@ export namespace dbu {
 		| 'json'
 		| 'enum'
 		| 'decimal'
-		| 'blob' | 'longblob'
+		| 'tinyblob' | 'blob' | 'mediumblob' | 'longblob'
 
 	/** 列选项 */
 	interface IColumnOption {
