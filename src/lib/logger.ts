@@ -34,7 +34,7 @@ export namespace logger {
 	 * @param color 颜色
 	 */
 	export function logs(str: string, color = 36) {
-		if (!isLogShown) return
+		// if (!isLogShown) return
 		if (!process.stdout || !process.stdout.writable) return
 
 		process.stdout.write('\x1b[0K')		//清除行
@@ -49,7 +49,7 @@ export namespace logger {
 	 * @param str 打印的字符串
 	 */
 	export function logln(str: string) {
-		if (!isLogShown) return
+		// if (!isLogShown) return
 		if (!process.stdout || !process.stdout.writable) return
 		
 		process.stdout.write('\x1b[0K')		//清除行
