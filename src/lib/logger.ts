@@ -51,10 +51,17 @@ export namespace logger {
 	export function logln(str: string) {
 		// if (!isLogShown) return
 		if (!process.stdout || !process.stdout.writable) return
-		
+
 		process.stdout.write('\x1b[0K')		//清除行
 		process.stdout.write(str)
 		process.stdout.write('\n')
+	}
+
+	/**
+	 * 清除行
+	 */
+	export function clearLine() {
+		process.stdout.write('\x1b[0K')
 	}
 
 
