@@ -729,9 +729,11 @@ export namespace dbu {
 			for (let i = 0; i < values.length; i++) {
 				const resi = await this.insert(table, values[i])
 				result.push(resi.insertId)
-				process.stdout.write(`              \x1b[0Gcomplate: ${parseInt((i + 1) * 100 / values.length as any)}% (${i + 1}/${values.length})`)
+				logger.logs(`Gcomplate: ${parseInt((i + 1) * 100 / values.length as any)}% (${i + 1}/${values.length})`)
+				// process.stdout.write(`              \x1b[0Gcomplate: ${parseInt((i + 1) * 100 / values.length as any)}% (${i + 1}/${values.length})`)
 			}
-			process.stdout.write(`\x1b[0G                      \x1b[0G`)
+			logger.logln('')
+			// if (isLogShown) process.stdout.write(`\x1b[0G                      \x1b[0G`)
 			return result
 		}
 

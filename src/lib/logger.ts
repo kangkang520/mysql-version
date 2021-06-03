@@ -22,6 +22,42 @@ export namespace logger {
 		error: 'red',
 	}
 
+	let isLogShown = true
+
+	export function showLog(show: boolean) {
+		isLogShown = show
+	}
+
+	/**
+	 * 清楚行并重新打印自负一层
+	 * @param str 打印的字符串
+	 * @param color 颜色
+	 */
+	export function logs(str: string, color = 36) {
+		if (!isLogShown) return
+		if (!process.stdout || !process.stdout.writable) return
+
+		process.stdout.write('\x1b[0K')		//清除行
+		if (color !== undefined) process.stdout.write(`\x1b[${color}m`)
+		process.stdout.write(str)
+		if (color !== undefined) process.stdout.write(`\x1b[0m`)
+		process.stdout.write('\x1b[0G')		//回到行首
+	}
+
+	/**
+	 * 换行打印字符串
+	 * @param str 打印的字符串
+	 */
+	export function logln(str: string) {
+		if (!isLogShown) return
+		if (!process.stdout || !process.stdout.writable) return
+		
+		process.stdout.write('\x1b[0K')		//清除行
+		process.stdout.write(str)
+		process.stdout.write('\n')
+	}
+
+
 	export function success(tag: string, msg: string) {
 		outLog(tag, 'success', msg)
 	}
@@ -42,11 +78,12 @@ export namespace logger {
 	 * @param vals 要输出的值
 	 */
 	export function out(...vals: Array<any>) {
-		console.log(vals)
+		if (isLogShown) console.log(vals)
 	}
 
 
 	function outLog(tag: string, type: keyof Icon, msg: string) {
+		if (!isLogShown) return
 		const colorName = colorDict[type]
 		const time = moment().format('YYYY-MM-DD HH:mm:ss')
 		console.log(''
