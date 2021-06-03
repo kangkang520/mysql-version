@@ -25,6 +25,7 @@ export namespace dbu {
 		| 'json'
 		| 'enum'
 		| 'decimal'
+		| 'blob' | 'longblob'
 
 	/** 列选项 */
 	interface IColumnOption {
@@ -656,7 +657,7 @@ export namespace dbu {
 		 * 连接数据库
 		 */
 		public async connect() {
-			return new Promise((resolve, reject) => this.conn.connect((err, res) => err ? reject(err) : resolve()))
+			return new Promise<void>((resolve, reject) => this.conn.connect((err, res) => err ? reject(err) : resolve()))
 		}
 
 		/**
