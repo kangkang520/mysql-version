@@ -730,10 +730,7 @@ export namespace dbu {
 				const resi = await this.insert(table, values[i])
 				result.push(resi.insertId)
 				logger.logs(`Gcomplate: ${parseInt((i + 1) * 100 / values.length as any)}% (${i + 1}/${values.length})`)
-				// process.stdout.write(`              \x1b[0Gcomplate: ${parseInt((i + 1) * 100 / values.length as any)}% (${i + 1}/${values.length})`)
 			}
-			logger.logln('')
-			// if (isLogShown) process.stdout.write(`\x1b[0G                      \x1b[0G`)
 			return result
 		}
 
