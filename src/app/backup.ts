@@ -46,14 +46,14 @@ export async function backup(option: IBackupOption) {
 		if (!dbs.some(dbi => dbi.Database == option.databaseConfig.database)) logger.warn('backup', 'nothing to be done')
 		//开始备份数据库
 		else {
-			await new Promise(resolve => {
+			await new Promise<void>(resolve => {
 				//创建文件输出流
 				const ws = fs.createWriteStream(outfile)
 				ws.write(option.backupFileTag)
 				const gzip = zlib.createGzip()
 				//开始备份
 				const cmd = [
-					'mysqldump',
+					'mysqldump --hex-blob',
 					...option.databaseConfig.username ? [`-u${option.databaseConfig.username}`] : [],
 					...option.databaseConfig.password ? [`-p${option.databaseConfig.password}`] : [],
 					`-h"${option.databaseConfig.host || 'localhost'}" -P${option.databaseConfig.port || 3306} "${option.databaseConfig.database}"`,
