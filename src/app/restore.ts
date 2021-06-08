@@ -54,6 +54,7 @@ export async function restore(option: IRestoreOption) {
 		if (!isBakFile) throw new Error(`file ${filename} is not a backup file`)
 		//连接数据库
 		conn = dbu.getConnection(option.databaseConfig)
+		conn.use(option.databaseConfig.database)
 		//数据库重新初始化
 		const dbs = await conn.query('show databases')
 		if (dbs.some(dbi => dbi.Database == option.databaseConfig.database)) {

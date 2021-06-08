@@ -54,6 +54,7 @@ export async function backup(option: IBackupOption) {
 		else if (!fs.statSync(dirname).isDirectory()) throw new Error(`backup directory ${dirname} is not directory`)
 		//连接数据库
 		conn = dbu.getConnection(option.databaseConfig)
+		conn.use(option.databaseConfig.database)
 		//检测是否能够备份
 		const dbs = await conn.query('show databases')
 		//生成备份名
