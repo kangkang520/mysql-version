@@ -5,8 +5,11 @@ import { exec } from 'child_process'
 import { BACKUP_FILE_TAG, MAX_BUFFER } from '../lib/const'
 import { logger } from '../lib/logger'
 import { dbu } from '../lib/mysql'
+import { createCryptStream } from '../lib/utils'
 
 export interface IRestoreOption {
+	/** 备份文件创建时的加密密码 */
+	fileEncryptPassword?: string | Buffer
 	/** 备份目录 */
 	backupDir: string
 	/** 备份文件标记 */
@@ -78,7 +81,7 @@ export async function restore(option: IRestoreOption) {
 				cp.kill()
 				reject(new Error('gunzip: ' + err.message))
 			})
-			fs.createReadStream(filename, { start: backupFileTag!.length }).pipe(gunzip).pipe(cp.stdin!)
+			fs.createReadStream(filename, { start: backupFileTag!.length }).pipe(gunzip).pipe(createCryptStream(option.fileEncryptPassword)).pipe(cp.stdin!)
 		})
 		logger.success('restore', `database restore successfully`)
 	} catch (err) {
