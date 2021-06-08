@@ -67,7 +67,7 @@ export async function backup(option: IBackupOption) {
 				dbname: option.databaseConfig.database
 			})
 		}
-		const outfile = path.join(dirname, `${moment().format('YYYYMMDD-HHmmss')}.bak`)
+		const outfile = path.join(dirname, filename)
 		conn.close()
 		conn = undefined
 		//如果数据库不存在则不备份
